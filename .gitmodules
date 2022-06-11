@@ -25,3 +25,9 @@
 [submodule "deps/libsamplerate"]
 	path = deps/libsamplerate
 	url = git@github.com:cheinr/libsamplerate.git
+[submodule "angrylion-rdp-plus"]
+	path = angrylion-rdp-plus
+	url = git@github.com:cheinr/angrylion-rdp-plus.git
+[submodule "mupen64plus-rsp-cxd4"]
+	path = mupen64plus-rsp-cxd4
+	url = git@github.com:cheinr/mupen64plus-rsp-cxd4.git

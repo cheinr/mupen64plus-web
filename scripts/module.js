@@ -36,6 +36,7 @@ var Module = {
       }
     };
   })(),
+  mainScriptUrlOrBlob: 'index.c1f6f26ec4.js',
   printErr: function(text) {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
     if (0) { // XXX disabled for safety typeof dump == 'function') {
