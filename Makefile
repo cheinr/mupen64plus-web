@@ -121,6 +121,7 @@ endif
 
 all: $(ALL_DEPS)
 	sed -i 's/importScripts(e.data.urlOrBlob)/importScripts("\/dist\/$(TARGET_JS)")/g'  $(BIN_DIR)/$(TARGET_WORKER_JS)
+	node remove-table-max-size.js bin/web/index.$(GIT_COMMIT).wasm
 
 run-benchmark: $(BENCHMARK_DEPS)
 	cd mupen64plus-web-benchmark && npm run benchmark
@@ -227,20 +228,20 @@ $(NATIVE_BIN)/mupen64plus-audio-sdl.so: $(NATIVE_BIN) $(NATIVE_AUDIO_DIR)/mupen6
 
 ifeq ($(config), debug)
 
-OPT_LEVEL = -O1 -g3 -s -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=1 #-Oz -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -fsanitize=address -Wcast-align -Wover-aligned -s WARN_UNALIGNED=1 ASSERTIONS=0 -s NO_EXIT_RUNTIME=1 -s ALLOW_MEMORY_GROWTH -fsanitize=address 			-s INITIAL_MEMORY=$(MEMORY) #  	-s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined
+OPT_LEVEL = -O2 -g3 -s -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=1 -s SAFE_HEAP=1 #-Oz -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -fsanitize=address -Wcast-align -Wover-aligned -s WARN_UNALIGNED=1 ASSERTIONS=0 -s NO_EXIT_RUNTIME=1 -s ALLOW_MEMORY_GROWTH -fsanitize=address 			-s INITIAL_MEMORY=$(MEMORY) #  	-s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined
 DEBUG_LEVEL = -g3
 
 else ifeq ($(config), release)
 
-OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1
+OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1 -s VERBOSE=1
 
 else ifeq ($(config), benchmark)
 
-OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1  -sNO_DISABLE_EXCEPTION_CATCHING -DBENCHMARK_MODE=1
+OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1  -sNO_DISABLE_EXCEPTION_CATCHING -DBENCHMARK_MODE=1 -s VERBOSE=1
 
 else
 
-OPT_LEVEL = -O3 -g3 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1
+OPT_LEVEL = -O2 -g3 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1 -s VERBOSE=1
 
 endif
 
@@ -440,7 +441,7 @@ $(BIN_DIR)/$(TARGET_JS): $(INDEX_TEMPLATE) $(REQUIRED_PLUGINS) $(INPUT_FILES)
 			-s ENVIRONMENT='web,worker' -s EXPORT_ES6=0 \
 			-s NO_EXIT_RUNTIME=1 -s USE_ZLIB=1 \
 			-s USE_SDL=2 -s USE_LIBPNG=1 -s FULL_ES3=1 \
-			-s ASYNCIFY=0 -s 'ASYNCIFY_IMPORTS=[\"waitForReliableMessage\",\"waitForAsyncAction\",\"findAutoInputConfigName\", \"sdl_init_audio_device\", \"initIDBFS\", \"writeROM\", \"copyInputAutoConfig\", \"startCore\"]' \
+			-s ASYNCIFY=1 -s 'ASYNCIFY_IMPORTS=[\"waitForReliableMessage\",\"waitForAsyncAction\",\"findAutoInputConfigName\", \"sdl_init_audio_device\", \"initIDBFS\", \"writeROM\", \"copyInputAutoConfig\", \"startCore\", \"compileAndPatchModule\"]' \
 			-s USE_BOOST_HEADERS=1 \
 			-DEMSCRIPTEN=1 --pre-js $(PRE_JS) --post-js $(POST_JS)" \
 			all
@@ -453,6 +454,7 @@ $(REQUIRED_CORE_PLUGIN_FILES): .FORCE
 		POSTFIX=-web \
 		UNAME=Linux \
 		EMSCRIPTEN=1 \
+		DYNAREC=1 \
 		M64P_STATIC_PLUGINS=$(USE_STATIC_PLUGINS) \
 		TARGET="$(CORE_LIB_JS)" \
 		SONAME="" \
@@ -468,7 +470,7 @@ $(REQUIRED_CORE_PLUGIN_FILES): .FORCE
 		GLU_CFLAGS="" \
 		NETPLAY=1 \
 		V=1 \
-		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -s EXPORT_ALL=1 -s INITIAL_MEMORY=$(MEMORY) -DONSCREEN_FPS=1 -s USE_SDL=2 -s ASYNCIFY=0 -I ../../src/api --js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js" \
+		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -s EXPORT_ALL=1 -s INITIAL_MEMORY=$(MEMORY) -DONSCREEN_FPS=1 -s USE_SDL=2 -s ASYNCIFY=1 -I ../../src/api --js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js" \
 		$(PLUGIN_BUILD_TARGET)
 
 
@@ -551,7 +553,7 @@ $(REQUIRED_INPUT_PLUGIN_FILES): .FORCE
 		GLU_CFLAGS="" \
 		V=1 \
 		LDLIBS="" \
-		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -s ASYNCIFY=0 --js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js" \
+		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -s ASYNCIFY=1 --js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js" \
 		$(PLUGIN_BUILD_TARGET)
 
 rsp: $(RSP_DIR)/$(RSP_LIB)
