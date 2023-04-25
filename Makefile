@@ -66,6 +66,7 @@ TARGET ?= mupen64plus
 PLUGINS_DIR = $(BIN_DIR)/plugins
 TARGET_LIB = $(TARGET)$(POSTFIX)$(SO_EXTENSION)
 TARGET_JS ?= index.$(GIT_COMMIT).js
+TARGET_WORKER_JS ?= index.$(GIT_COMMIT).worker.js
 INDEX_TEMPLATE = $(abspath $(SCRIPTS_DIR)/index.template.html)
 PRE_JS = $(abspath $(SCRIPTS_DIR)/prefix.js)
 POST_JS = $(abspath $(SCRIPTS_DIR)/postfix.js)
@@ -119,6 +120,7 @@ ifeq ($(PLATFORM), native)
 endif
 
 all: $(ALL_DEPS)
+	sed -i 's/importScripts(e.data.urlOrBlob)/importScripts("\/dist\/$(TARGET_JS)")/g'  $(BIN_DIR)/$(TARGET_WORKER_JS)
 
 run-benchmark: $(BENCHMARK_DEPS)
 	cd mupen64plus-web-benchmark && npm run benchmark
@@ -247,6 +249,8 @@ OPT_FLAGS := $(OPT_LEVEL) \
 			$(DEBUG_LEVEL) \
 			-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"ccall\", \"cwrap\", \"getValue\", \"FS\", \"setValue\", \"netplay_request_pause\", \"netplay_request_resume\"]' \
 			-DEMSCRIPTEN=1 \
+			-pthread \
+			-sOFFSCREEN_FRAMEBUFFER \
 			-DUSE_FRAMESKIPPER=1
 
 
@@ -433,7 +437,7 @@ $(BIN_DIR)/$(TARGET_JS): $(INDEX_TEMPLATE) $(REQUIRED_PLUGINS) $(INPUT_FILES)
 			--js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js \
 			-s INITIAL_MEMORY=$(MEMORY) \
 			-s DEMANGLE_SUPPORT=1 -s MODULARIZE=1 -s EXPORT_NAME=\"createModule\" \
-			-s ENVIRONMENT='web' -s EXPORT_ES6=0 \
+			-s ENVIRONMENT='web,worker' -s EXPORT_ES6=0 \
 			-s NO_EXIT_RUNTIME=1 -s USE_ZLIB=1 \
 			-s USE_SDL=2 -s USE_LIBPNG=1 -s FULL_ES3=1 \
 			-s ASYNCIFY=1 -s 'ASYNCIFY_IMPORTS=[\"waitForReliableMessage\",\"waitForAsyncAction\",\"findAutoInputConfigName\", \"sdl_init_audio_device\", \"initIDBFS\", \"writeROM\", \"copyInputAutoConfig\", \"startCore\"]' \
