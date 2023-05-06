@@ -612,6 +612,16 @@ function performMultiLineReplacements(generatedFunction, name) {
     //*/
   }
 
+  const incrementPCRegexp = /CALL_R4300_PC_STRUCT;\n.+LOCAL_TEE\((.+)\);\n.+I32_LOAD\(0\);\n.+I32_CONST\(140\);\n.+I32_ADD;\n.+LOCAL_SET\((.+)\);\n.+LOCAL_GET\(.+\);\n.+LOCAL_GET\(.+\);\n.+I32_STORE\(0\);/mi;
+  incrementPCRegexpExecResult = incrementPCRegexp.exec(out);
+  
+  if (incrementPCRegexpExecResult) {
+    out = out.replace(incrementPCRegexp,
+                      `INCREMENT_PC_BY_ONE(${incrementPCRegexpExecResult[1]}, ${incrementPCRegexpExecResult[2]});`);
+    
+  }
+
+
   return out;
 }
 
