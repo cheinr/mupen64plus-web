@@ -174,6 +174,10 @@ const REGEX_TRANSFORMS = [
     transform: (r) => `    R4300_READ_ALIGNED_DWORD_INDIRECT_CALL;`
   },
   {
+    regex: /^call \$check_cop1_unusable$/,
+    transform: (r) => `    CHECK_COP1_UNUSABLE_INDIRECT_CALL;`
+  },
+  {
     regex: /^drop$/,
     transform: (r) => `    DROP;`
   }
@@ -250,6 +254,19 @@ const I_TYPE_INSTRUCTIONS = [
   "SB",
   "SH",
   "SW"];
+
+// Instructions that the compiler removed from the bundle
+// because their implementation is the same as others
+const instructionDedupeMappings = {
+  "ADDU": "ADD",
+  "ADDIU": "ADDI",
+  "CACHE": "NOP",
+  "DADDIU": "DADDI",
+  "DADDU": "DADD",
+  "DSUBU": "DSUB",
+  "SUBU": "SUB",
+  "SYNC": "NOP"
+}
 
 let instructions = [/*"RESERVED",*/
                     "ADD",                      
@@ -384,7 +401,7 @@ let instructions = [/*"RESERVED",*/
                     "CP1_TRUNC_L",
                     "CP1_TRUNC_W",
                     "CTC0",
-                    "CTC1",
+                    /*"CTC1", skipping for now */
                     "CTC2",
                     "DADD",
                     "DADDI",
@@ -464,7 +481,7 @@ let instructions = [/*"RESERVED",*/
                     "SC",
                     "SCD",
                     "SD",
-                    "SDC1",
+                    /*"SDC1", Hard to debug error */
                     "SDC2",
                     "SDL",
                     "SDR",
@@ -511,7 +528,6 @@ const text = fs.readFileSync('module5.wat', { encoding: 'utf8' });
 
 let out = ``;
 
-//instructions = [ "OR" ];
 
 const nonCompileableInstructions = new Set();
 const results = instructions.map((inst) => getInterpFunction(inst));
@@ -529,10 +545,10 @@ successfullyCompiled.forEach((compileResult) => {
 const notSuccessfullyCompiled = results.filter((result) => result && result.numCompileFailures > 0);
 
 
-console.log("notSuccessfullyCompiled: %o", notSuccessfullyCompiled.sort((r1, r2) => r2.numCompileFailures - r1.numCompileFailures).map((r) => {
+//console.log("notSuccessfullyCompiled: %o", notSuccessfullyCompiled.sort((r1, r2) => r2.numCompileFailures - r1.numCompileFailures).map((r) => {
   //r.generated = "";
-  return r;
-}));
+//  return r;
+//}));
 
 console.log("Successfully compiled %o functions", results.length - notSuccessfullyCompiled.length);
 console.log("Unable to compile %o functions", notSuccessfullyCompiled.length);
@@ -596,6 +612,7 @@ function performMultiLineReplacements(generatedFunction, name) {
      /I32_CONST\(.+\);\n.+call \$r4300_pc_struct/gmi,
      "CALL_R4300_PC_STRUCT;");*/
 
+  // Move these out of here
   out = out.replace(
     /I32_CONST\(1747816\);/gmi,
     "I32_CONST((int) &g_dev.r4300);");
@@ -613,100 +630,68 @@ function performMultiLineReplacements(generatedFunction, name) {
     "I32_CONST((int) &(&g_dev.r4300)->pc);");
 
   out = out.replace(
+    /I32_CONST\(15382664\);/gmi,
+    "I32_CONST((int)  &(&(&g_dev.r4300)->cp1)->fcr0);");
+
+  out = out.replace(
+    /I32_CONST\(15382664\);/gmi,
+    "I32_CONST((int)  &(&(&g_dev.r4300)->cp1)->fcr0);");
+
+  out = out.replace(
+    /I32_CONST\(15382668\);/gmi,
+    "I32_CONST((int)  &(&(&g_dev.r4300)->cp1)->fcr31);");
+
+  out = out.replace(
+    /I32_CONST\(15382672\);/gmi,
+    "I32_CONST((int)  &(&(&g_dev.r4300)->cp1)->regs_simple);");
+
+  out = out.replace(
+    /I32_CONST\(15382800\);/gmi,
+    "I32_CONST((int)  &(&(&g_dev.r4300)->cp1)->regs_double);");
+
+  
+  out = out.replace(
     /I32_CONST\(1747816\);\n.+call \$exception_general$/gmi,
     "CALL_EXCEPTION_GENERAL;");
 
-
-  /*  out = out.replace(
+  out = out.replace(
      /I32_CONST\(0\);\n.+generate_block_exit_check\(\);/gmi,
-     "");
+    "");
+
+  out = out.replace(/I32_CONST\(\(int\) &\(&g_dev.r4300\)->pc\);\n.+I32_LOAD\(0\);\n.+LOCAL_TEE\(local0\);\n.+I32_LOAD\(16\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(12\);\n.+I32_LOAD\(0\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(8\);\n.+I32_LOAD\(0\);/gmi,
+                    "LOAD_RRD_ADDRESS;\n    LOAD_RRT32_VALUE;\n    LOAD_RRS32_VALUE;");
+
+  // RRD_ADDRESS; RRS, RRT(64), RRD
+  out = out.replace(/I32_CONST\(\(int\) &\(&g_dev.r4300\)->pc\);\n.+I32_LOAD\(0\);\n.+LOCAL_TEE\(local0\);\n.+I32_LOAD\(16\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(8\);\n.+I64_LOAD\(0\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(12\);\n.+I64_LOAD\(0\);/gmi,
+                    "LOAD_RRD_ADDRESS;\n    LOAD_RRS_VALUE;\n    LOAD_RRT_VALUE;");
+  
+
+  // ANDI
+  // irt, irs, iimmediate
+  out = out.replace(/I32_CONST\(\(int\) &\(&g_dev.r4300\)->pc\);\n.+I32_LOAD\(0\);\n.+LOCAL_TEE\(local0\);\n.+I32_LOAD\(12\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(8\);\n.+I64_LOAD\(0\);\n.+LOCAL_GET\(local0\);\n.+I64_LOAD16_U\(16\);/gmi,
+                    "LOAD_IRT_ADDRESS;\n    LOAD_IRS_VALUE;\n    LOAD_IIMMEDIATE_64U;");
+  //----------------
 
 
-     const r4300CallRegexp = /I32_CONST\(.+\);\n.+call \$r4300_(.+)/mi;
-     let r4300CallRegexpExecResult;
-     do {
-     
-     r4300CallRegexpExecResult = r4300CallRegexp.exec(out);
-     
-     if (r4300CallRegexpExecResult) {
-     out = out.replace(r4300CallRegexp,
-     `R4300_${r4300CallRegexpExecResult[1].toUpperCase()};`);
-     
-     }
-     } while (r4300CallRegexpExecResult);
-   */
-  /*    const r4300CallRegexp = /I32_CONST\(.+\);\n.+call \$r4300_(.+)/mi;
-     let r4300CallRegexpExecResult2;
-     do {
-     
-     r4300CallRegexpExecResult2 = r4300CallRegexp2.exec(out);
-     
-     if (r4300CallRegexpExecResult2) {
-     out = out.replace(r4300CallRegexp2,
-     `R4300_${r4300CallRegexpExecResult[1].toUpperCase()};`);
-     
-     }
-     } while (r4300CallRegexpExecResult2);*/
+  // ADDI
+  // irt, iimmediate, irs32
+  out = out.replace(/I32_CONST\(\(int\) &\(&g_dev.r4300\)->pc\);\n.+I32_LOAD\(0\);\n.+LOCAL_TEE\(local0\);\n.+I32_LOAD\(12\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD16_S\(16\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(8\);\n.+I32_LOAD\(0\);/gmi,
+                    "LOAD_IRT_ADDRESS;\n    LOAD_IIMMEDIATE_32S;\n    LOAD_IRS32_VALUE;");
 
-  /*
-     
-     if (instructionType) {
+  
+  // ---------------
 
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD\(8\);\n.+I32_LOAD\(0\);/gmi,
-     `LOAD_${instructionType}RS32_VALUE;`);
+  // DADDI
+  out = out.replace(/I32_CONST\(\(int\) &\(&g_dev.r4300\)->pc\);\n.+I32_LOAD\(0\);\n.+LOCAL_TEE\(local0\);\n.+I32_LOAD\(12\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(8\);\n.+I64_LOAD\(0\);\n.+LOCAL_GET\(local0\);\n.+I64_LOAD16_S\(16\);/gmi,
+                    "LOAD_IRT_ADDRESS;\n    LOAD_RRS_VALUE;\n    LOAD_IIMMEDIATE_64S;");
 
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD\(8\);\n.+I64_LOAD\(0\);/gmi,
-     `LOAD_${instructionType}RS_VALUE;`);
+  // SUBU
+  // rrs32 rrt32
+  out = out.replace(/I32_CONST\(\(int\) &\(&g_dev.r4300\)->pc\);\n.+I32_LOAD\(0\);\n.+LOCAL_TEE\(local0\);\n.+I32_LOAD\(16\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(8\);\n.+I32_LOAD\(0\);\n.+LOCAL_GET\(local0\);\n.+I32_LOAD\(12\);\n.+I32_LOAD\(0\);/gmi,
+                    "LOAD_RRD_ADDRESS;\n    LOAD_RRS32_VALUE;\n    LOAD_RRT32_VALUE;");
 
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD\(12\);\n.+I64_LOAD\(0\);/gmi,
-     `LOAD_${instructionType}RT_VALUE;`);
-     
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD\(12\);\n.+I32_LOAD\(0\);/gmi,
-     `LOAD_${instructionType}RT32_VALUE;`);
 
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD\(8\);/gmi,
-     `LOAD_${instructionType}RS32_ADDRESS;`);
-
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD\(12\);/gmi,
-     `LOAD_${instructionType}RT_ADDRESS;`);
-
-     if (instructionType === "R") {
-     
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD\(16\);/gmi,
-     `LOAD_${instructionType}RD_ADDRESS;`);
-
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD8_U\(20\);/gmi,
-     `LOAD_RSA32;`);
-
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I64_LOAD8_U\(20\);/gmi,
-     `LOAD_RSA;`);
-     }
-
-     if (instructionType === "I") {
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD16_S\(16\);/gmi,
-     `LOAD_IIMMEDIATE_32S;`);
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I32_LOAD16_U\(16\);/gmi,
-     `LOAD_IIMMEDIATE_32U;`);
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I64_LOAD16_S\(16\);/gmi,
-     `LOAD_IIMMEDIATE_64S;`);
-     out = out.replace(
-     /CALL_R4300_PC_STRUCT;\n.+I32_LOAD\(0\);\n.+I64_LOAD16_U\(16\);/gmi,
-     `LOAD_IIMMEDIATE_64U;`);
-
-     }
-   */
+  // ------------------------------
   //*/
   /*
      }
@@ -721,11 +706,25 @@ function performMultiLineReplacements(generatedFunction, name) {
      }
 
    */
-  return out;
+
+
+  out = out.replace(
+    /I32_CONST\(\(int\) &\(&g_dev.r4300\)->pc\);\n.+I32_CONST\(\(int\) &\(&g_dev.r4300\)->pc\);\n.+I32_LOAD\(0\);\n.+I32_CONST\(140\);\n.+I32_ADD;\n.+I32_STORE\(0\);$/gmi,
+    "INCREMENT_PC_BY_ONE;");
+
+
+    return out;
 }
 
-function getInterpFunction(name) {
-  const regexp = new RegExp(`func \\$recomp_wasm_interp_${name} `);
+    function getInterpFunction(name) {
+
+      let symbolName = name;
+      if (instructionDedupeMappings[name]) {
+    console.log("instructionDedupeMapping: %o", instructionDedupeMappings[name]);
+    symbolName = instructionDedupeMappings[name];
+  }
+  
+  const regexp = new RegExp(`func \\$recomp_wasm_interp_${symbolName} `);
   const funcStart = text.search(regexp);
   const funcLength = text.slice(funcStart).search(/\(func/) - 1;
   //out += text.slice(funcStart-1, funcStart+funcLength).replace('type 7', 'type 1');
@@ -733,8 +732,9 @@ function getInterpFunction(name) {
   //  console.log(functionBody);
 
   const functionBodyLines = functionBody.split("\n").filter((line) => line.trim() !== '');
-  console.log("functionBodyLines: %o", functionBodyLines);
+ // console.log("functionBodyLines: %o", functionBodyLines);
   if (!functionBodyLines[1]) {
+    console.log("empty functionBody for %o!", name);
     return;
   }
 
@@ -771,7 +771,7 @@ function getInterpFunction(name) {
 
   generated = performMultiLineReplacements(generated, name);
   
-  console.log(generated);
+  console.log("generated: " + generated);
 
   return {
     name,
