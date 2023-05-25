@@ -120,7 +120,6 @@ ifeq ($(PLATFORM), native)
 endif
 
 all: $(ALL_DEPS)
-	sed -i 's/importScripts(e.data.urlOrBlob)/importScripts("\/dist\/$(TARGET_JS)")/g'  $(BIN_DIR)/$(TARGET_WORKER_JS)
 	node remove-table-max-size.js bin/web/index.$(GIT_COMMIT).wasm
 
 run-benchmark: $(BENCHMARK_DEPS)
@@ -241,7 +240,7 @@ OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s NO_EXIT_RUNTIME -s ALLOW
 
 else
 
-OPT_LEVEL = -O2 -g3 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1 -s VERBOSE=1
+OPT_LEVEL = -O3 -g3 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1 -s VERBOSE=1
 
 endif
 
@@ -250,8 +249,6 @@ OPT_FLAGS := $(OPT_LEVEL) \
 			$(DEBUG_LEVEL) \
 			-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"ccall\", \"cwrap\", \"getValue\", \"FS\", \"setValue\", \"netplay_request_pause\", \"netplay_request_resume\"]' \
 			-DEMSCRIPTEN=1 \
-			-pthread \
-			-sOFFSCREEN_FRAMEBUFFER \
 			-DUSE_FRAMESKIPPER=1
 
 
