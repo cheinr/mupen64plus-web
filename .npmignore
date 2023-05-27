@@ -36,3 +36,6 @@ mupen64plus-audio-web/projects/unix/mupen64plus-audio-web.js
 
 /GLideN64
 /cfg/gliden64
+
+
+utils/*
