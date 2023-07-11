@@ -431,6 +431,7 @@ $(BIN_DIR)/$(TARGET_JS): $(INDEX_TEMPLATE) $(REQUIRED_PLUGINS) $(INPUT_FILES)
 			--use-preload-plugins -lidbfs.js \
 			--preload-file $(BIN_DIR)/data@data \
 			--shell-file $(INDEX_TEMPLATE) \
+			--js-library ../../../mupen64plus-audio-web/src/jslib/audiolib.js \
 			--js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js \
 			--js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js \
 			-s INITIAL_MEMORY=$(MEMORY) \
