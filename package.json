@@ -1,6 +1,6 @@
 {
   "name": "mupen64plus-web",
-  "version": "1.5.4",
+  "version": "1.5.3",
   "description": "Emscripten based web port of Mupen64plus N64 Emulator",
   "main": "./bin/web/main.js",
   "types": "./scripts/main.d.ts",
