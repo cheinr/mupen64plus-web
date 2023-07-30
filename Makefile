@@ -33,6 +33,11 @@ AUDIO_LIB = $(AUDIO).so
 AUDIO_LIB_JS = $(AUDIO)-web.wasm
 AUDIO_LIB_STATIC = $(AUDIO_DIR)$(AUDIO)-web.a
 
+AUDIO_WEB ?= mupen64plus-audio-web
+AUDIO_WEB_DIR = $(AUDIO_WEB)/projects/unix/
+AUDIO_WEB_LIB = $(AUDIO_WEB).so
+AUDIO_WEB_LIB_JS = $(AUDIO_WEB)-web.wasm
+AUDIO_WEB_LIB_STATIC = $(AUDIO_WEB_DIR)$(AUDIO_WEB)-web.a
 
 NATIVE_AUDIO := mupen64plus-audio-sdl
 NATIVE_AUDIO_DIR = $(NATIVE_AUDIO)/projects/unix
@@ -306,6 +311,10 @@ $(PLUGINS_DIR)/$(CORE_LIB) : $(CORE_DIR)/$(CORE_LIB_JS)
 	cp "$<" "$@"
 
 $(PLUGINS_DIR)/$(AUDIO_LIB) : $(AUDIO_DIR)/$(AUDIO_LIB_JS)
+	mkdir -p $(PLUGINS_DIR)
+	cp "$<" "$@"
+
+$(PLUGINS_DIR)/$(AUDIO_WEB_LIB) : $(AUDIO_WEB_DIR)/$(AUDIO_WEB_LIB_JS)
 	mkdir -p $(PLUGINS_DIR)
 	cp "$<" "$@"
 

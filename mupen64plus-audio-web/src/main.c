@@ -22,6 +22,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+#ifdef M64P_STATIC_PLUGINS
+#include "audio_static.h"
+#define M64P_CORE_PROTOTYPES 1
+#endif
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +54,9 @@
 #include "m64p_plugin.h"
 #include "m64p_types.h"
 #include "main.h"
+#ifndef M64P_STATIC_PLUGINS
 #include "osal_dynamiclib.h"
+#endif
 #include "volume.h"
 
 /* Default start-time size of primary buffer (in equivalent output samples).
@@ -162,6 +169,7 @@ static void InitializeSDL(void);
 
 static int critical_failure = 0;
 
+#ifndef M64P_STATIC_PLUGINS
 /* definitions of pointers to Core config functions */
 ptr_ConfigOpenSection      ConfigOpenSection = NULL;
 ptr_ConfigDeleteSection    ConfigDeleteSection = NULL;
@@ -177,9 +185,10 @@ ptr_ConfigGetParamInt      ConfigGetParamInt = NULL;
 ptr_ConfigGetParamFloat    ConfigGetParamFloat = NULL;
 ptr_ConfigGetParamBool     ConfigGetParamBool = NULL;
 ptr_ConfigGetParamString   ConfigGetParamString = NULL;
+#endif
 
 /* Global functions */
-static void DebugMessage(int level, const char *message, ...)
+static void DebugMessageAudio(int level, const char *message, ...)
 {
   char msgbuf[1024];
   va_list args;
@@ -198,13 +207,19 @@ static void DebugMessage(int level, const char *message, ...)
 #ifdef USE_AUDIORESOURCE
 void on_audioresource_acquired(audioresource_t *audioresource, bool acquired, void *user_data)
 {
-    DebugMessage(M64MSG_VERBOSE, "audioresource acquired: %d", acquired);
+    DebugMessageAudio(M64MSG_VERBOSE, "audioresource acquired: %d", acquired);
     l_audioresource_acquired = acquired;
 }
 #endif
 
 /* Mupen64Plus plugin functions */
-EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Context,
+EXPORT m64p_error CALL
+#if M64P_STATIC_PLUGINS
+PluginStartupAudio
+#else
+PluginStartup
+#endif
+(m64p_dynlib_handle CoreLibHandle, void *Context,
                                    void (*DebugCallback)(void *, int, const char *))
 {
     ptr_CoreGetAPIVersions CoreAPIVersionFunc;
@@ -253,21 +268,27 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     l_DebugCallContext = Context;
 
     /* attach and call the CoreGetAPIVersions function, check Config API version for compatibility */
+
+#if (!M64P_STATIC_PLUGINS)
     CoreAPIVersionFunc = (ptr_CoreGetAPIVersions) osal_dynlib_getproc(CoreLibHandle, "CoreGetAPIVersions");
+#else
+    CoreAPIVersionFunc = &CoreGetAPIVersions;
+#endif
     if (CoreAPIVersionFunc == NULL)
     {
-        DebugMessage(M64MSG_ERROR, "Core emulator broken; no CoreAPIVersionFunc() function found.");
+        DebugMessageAudio(M64MSG_ERROR, "Core emulator broken; no CoreAPIVersionFunc() function found.");
         return M64ERR_INCOMPATIBLE;
     }
 
     (*CoreAPIVersionFunc)(&ConfigAPIVersion, &DebugAPIVersion, &VidextAPIVersion, NULL);
     if ((ConfigAPIVersion & 0xffff0000) != (CONFIG_API_VERSION & 0xffff0000))
     {
-        DebugMessage(M64MSG_ERROR, "Emulator core Config API (v%i.%i.%i) incompatible with plugin (v%i.%i.%i)",
+        DebugMessageAudio(M64MSG_ERROR, "Emulator core Config API (v%i.%i.%i) incompatible with plugin (v%i.%i.%i)",
                 VERSION_PRINTF_SPLIT(ConfigAPIVersion), VERSION_PRINTF_SPLIT(CONFIG_API_VERSION));
         return M64ERR_INCOMPATIBLE;
     }
 
+#if (!M64P_STATIC_PLUGINS)
     /* Get the core config function pointers from the library handle */
     ConfigOpenSection = (ptr_ConfigOpenSection) osal_dynlib_getproc(CoreLibHandle, "ConfigOpenSection");
     ConfigDeleteSection = (ptr_ConfigDeleteSection) osal_dynlib_getproc(CoreLibHandle, "ConfigDeleteSection");
@@ -292,10 +313,12 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     if (ConfigAPIVersion >= 0x020100 && !ConfigSaveSection)
         return M64ERR_INCOMPATIBLE;
 
+#endif
+
     /* get a configuration section handle */
     if (ConfigOpenSection("Audio-web", &l_ConfigAudio) != M64ERR_SUCCESS)
     {
-        DebugMessage(M64MSG_ERROR, "Couldn't open config section 'Audio-SDL'");
+        DebugMessageAudio(M64MSG_ERROR, "Couldn't open config section 'Audio-SDL'");
         return M64ERR_INPUT_NOT_FOUND;
     }
 
@@ -303,14 +326,14 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     bSaveConfig = 0;
     if (ConfigGetParameter(l_ConfigAudio, "Version", M64TYPE_FLOAT, &fConfigParamsVersion, sizeof(float)) != M64ERR_SUCCESS)
     {
-        DebugMessage(M64MSG_WARNING, "No version number in 'Audio-web' config section. Setting defaults.");
+        DebugMessageAudio(M64MSG_WARNING, "No version number in 'Audio-web' config section. Setting defaults.");
         ConfigDeleteSection("Audio-web");
         ConfigOpenSection("Audio-web", &l_ConfigAudio);
         bSaveConfig = 1;
     }
     else if (((int) fConfigParamsVersion) != ((int) CONFIG_PARAM_VERSION))
     {
-        DebugMessage(M64MSG_WARNING, "Incompatible version %.2f in 'Audio-web' config section: current is %.2f. Setting defaults.", fConfigParamsVersion, (float) CONFIG_PARAM_VERSION);
+        DebugMessageAudio(M64MSG_WARNING, "Incompatible version %.2f in 'Audio-web' config section: current is %.2f. Setting defaults.", fConfigParamsVersion, (float) CONFIG_PARAM_VERSION);
         ConfigDeleteSection("Audio-SDL");
         ConfigOpenSection("Audio-SDL", &l_ConfigAudio);
         bSaveConfig = 1;
@@ -320,7 +343,7 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
         /* handle upgrades */
         float fVersion = CONFIG_PARAM_VERSION;
         ConfigSetParameter(l_ConfigAudio, "Version", M64TYPE_FLOAT, &fVersion);
-        DebugMessage(M64MSG_INFO, "Updating parameter set version in 'Audio-SDL' config section to %.2f", fVersion);
+        DebugMessageAudio(M64MSG_INFO, "Updating parameter set version in 'Audio-SDL' config section to %.2f", fVersion);
         bSaveConfig = 1;
     }
 
@@ -348,7 +371,7 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
 
     while(!l_audioresource_acquired)
     {
-        DebugMessage(M64MSG_INFO, "Waiting for audioresource...");
+        DebugMessageAudio(M64MSG_INFO, "Waiting for audioresource...");
         g_main_context_iteration(NULL, false);
     }
 #endif
@@ -357,7 +380,13 @@ EXPORT m64p_error CALL PluginStartup(m64p_dynlib_handle CoreLibHandle, void *Con
     return M64ERR_SUCCESS;
 }
 
-EXPORT m64p_error CALL PluginShutdown(void)
+EXPORT m64p_error CALL
+#if M64P_STATIC_PLUGINS
+PluginShutdownAudio
+#else
+PluginShutdown
+#endif
+(void)
 {
     if (!l_PluginInit)
         return M64ERR_NOT_INIT;
@@ -382,7 +411,13 @@ EXPORT m64p_error CALL PluginShutdown(void)
     return M64ERR_SUCCESS;
 }
 
-EXPORT m64p_error CALL PluginGetVersion(m64p_plugin_type *PluginType, int *PluginVersion, int *APIVersion, const char **PluginNamePtr, int *Capabilities)
+EXPORT m64p_error CALL
+#if M64P_STATIC_PLUGINS
+PluginGetVersionAudio
+#else
+PluginGetVersion
+#endif
+(m64p_plugin_type *PluginType, int *PluginVersion, int *APIVersion, const char **PluginNamePtr, int *Capabilities)
 {
     /* set version info */
     if (PluginType != NULL)
@@ -584,7 +619,14 @@ static int resample(unsigned char *input, int input_avail, int oldsamplerate, un
     return j * 4; //number of bytes consumed
 }
 
-EXPORT int CALL RomOpen(void)
+
+EXPORT int CALL
+#if M64P_STATIC_PLUGINS
+RomOpenAudio
+#else
+RomOpen
+#endif
+(void)
 {
     if (!l_PluginInit)
         return 0;
@@ -596,12 +638,12 @@ EXPORT int CALL RomOpen(void)
 
 static void InitializeSDL(void)
 {
-    DebugMessage(M64MSG_INFO, "Initializing SDL audio subsystem...");
+    DebugMessageAudio(M64MSG_INFO, "Initializing SDL audio subsystem...");
 
     if(0)
 
     {
-        DebugMessage(M64MSG_ERROR, "Failed to initialize SDL audio subsystem; forcing exit.\n");
+        DebugMessageAudio(M64MSG_ERROR, "Failed to initialize SDL audio subsystem; forcing exit.\n");
         critical_failure = 1;
         return;
     }
@@ -618,7 +660,7 @@ static void CreatePrimaryBuffer(void)
 		primaryBufferBytes = newPrimaryBytes;
     if (primaryBuffer == NULL)
     {
-        DebugMessage(M64MSG_VERBOSE, "Allocating memory for audio buffer: %i bytes.", newPrimaryBytes);
+        DebugMessageAudio(M64MSG_VERBOSE, "Allocating memory for audio buffer: %i bytes.", newPrimaryBytes);
         primaryBuffer = (unsigned char*) malloc(newPrimaryBytes);
         memset(primaryBuffer, 0, newPrimaryBytes);
         primaryBufferBytes = newPrimaryBytes;
@@ -657,7 +699,7 @@ void InitializeAudio(int freq)
   else if(freq < 22050) OutputFreq = 22050;
   else OutputFreq = 44100;
 
-  DebugMessage(M64MSG_VERBOSE, "Frequency: %i", freq);
+  DebugMessageAudio(M64MSG_VERBOSE, "Frequency: %i", freq);
    
   /* set playback volume */
 #if defined(HAS_OSS_SUPPORT)
@@ -671,13 +713,19 @@ void InitializeAudio(int freq)
       //VolSDL = SDL_MIX_MAXVOLUME * VolPercent / 100;
     }
 }
-EXPORT void CALL RomClosed( void )
+EXPORT void CALL
+#if M64P_STATIC_PLUGINS
+RomClosedAudio
+#else
+RomClosed
+#endif
+( void )
 {
     if (!l_PluginInit)
         return;
    if (critical_failure == 1)
        return;
-    DebugMessage(M64MSG_VERBOSE, "Cleaning up SDL sound plugin...");
+    DebugMessageAudio(M64MSG_VERBOSE, "Cleaning up SDL sound plugin...");
     
     // Delete the buffer, as we are done producing sound
     if (primaryBuffer != NULL)
@@ -725,7 +773,7 @@ static void ReadConfig(void)
 
     if (!resampler_id) {
         Resample = RESAMPLER_TRIVIAL;
-	DebugMessage(M64MSG_WARNING, "Could not find RESAMPLE configuration; use trivial resampler");
+	DebugMessageAudio(M64MSG_WARNING, "Could not find RESAMPLE configuration; use trivial resampler");
 	return;
     }
     if (strcmp(resampler_id, "trivial") == 0) {
@@ -755,7 +803,7 @@ static void ReadConfig(void)
                 return;
             }
         }
-        DebugMessage(M64MSG_WARNING, "Unknown RESAMPLE configuration %s; use speex-fixed-4 resampler", resampler_id);
+        DebugMessageAudio(M64MSG_WARNING, "Unknown RESAMPLE configuration %s; use speex-fixed-4 resampler", resampler_id);
         ResampleQuality = 4;
         return;
     }
@@ -783,12 +831,12 @@ static void ReadConfig(void)
             ResampleQuality = SRC_LINEAR;
             return;
         }
-        DebugMessage(M64MSG_WARNING, "Unknown RESAMPLE configuration %s; use src-sinc-medium-quality resampler", resampler_id);
+        DebugMessageAudio(M64MSG_WARNING, "Unknown RESAMPLE configuration %s; use src-sinc-medium-quality resampler", resampler_id);
         ResampleQuality = SRC_SINC_MEDIUM_QUALITY;
         return;
     }
 #endif
-    DebugMessage(M64MSG_WARNING, "Unknown RESAMPLE configuration %s; use trivial resampler", resampler_id);
+    DebugMessageAudio(M64MSG_WARNING, "Unknown RESAMPLE configuration %s; use trivial resampler", resampler_id);
     Resample = RESAMPLER_TRIVIAL;
 }
 

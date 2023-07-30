@@ -264,6 +264,7 @@ endif
 
 # set base program pointers and flags
 CC        ?= $(CROSS_COMPILE)gcc
+AR	  = ar
 RM       ?= rm -f
 INSTALL  ?= install
 MKDIR ?= mkdir -p
@@ -302,7 +303,7 @@ SOURCE = \
 ifeq ($(OS),MINGW)
 SOURCE += $(SRCDIR)/osal_dynamiclib_win32.c
 else
-SOURCE += $(SRCDIR)/osal_dynamiclib_unix.c
+SOURCE += #$(SRCDIR)/osal_dynamiclib_unix.c
 endif
 
 # generate a list of object files build, make a temporary directory for them
@@ -312,6 +313,7 @@ $(shell $(MKDIR) $(OBJDIRS))
 
 # build targets
 TARGET = mupen64plus-audio$(POSTFIX).$(SO_EXTENSION)
+TARGET_STATIC = mupen64plus-audio-web$(POSTFIX).a
 
 targets:
 	@echo "Mupen64Plus-audio-sdl makefile. "
@@ -342,6 +344,7 @@ targets:
 
 
 all: $(TARGET)
+static: $(TARGET_STATIC)
 
 install: $(TARGET)
 	$(INSTALL) -d "$(DESTDIR)$(PLUGINDIR)"
@@ -365,5 +368,8 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 
 $(TARGET): $(OBJECTS)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+$(TARGET_STATIC): $(OBJECTS)
+	$(AR) rcs $@ $^
 
 .PHONY: all clean install uninstall targets
