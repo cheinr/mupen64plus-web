@@ -28,3 +28,6 @@
 [submodule "mupen64plus-web-benchmark"]
 	path = mupen64plus-web-benchmark
 	url = git@github.com:cheinr/mupen64plus-web-benchmark.git
+[submodule "GLideN64"]
+	path = GLideN64
+	url = git@github.com:cheinr/GLideN64.git
