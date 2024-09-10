@@ -83,7 +83,6 @@ UTILITY_FILES = \
 
 INPUT_FILES = \
 	$(BIN_DIR)/data/InputAutoCfg.ini \
-	$(BIN_DIR)/data/RiceVideoLinux.ini \
 	$(BIN_DIR)/stats.min.js \
 	$(BIN_DIR)/main.js \
 	$(BIN_DIR)/gamepad-utils.js \
@@ -93,6 +92,13 @@ INPUT_FILES = \
 	$(BIN_DIR)/data/mupen64plus.cfg \
 	$(BIN_DIR)/data/mupen64plus.ini \
 	# $(BIN_DIR)/data/Glide64mk2.ini \
+
+ifeq ($(video), gliden64)
+INPUT_FILES += $(BIN_DIR)/data/font.ttf
+INPUT_FILES += $(BIN_DIR)/data/GLideN64.ini
+else
+INPUT_FILES += $(BIN_DIR)/data/RiceVideoLinux.ini
+endif
 
 BENCHMARK_DEPS = \
 	mupen64plus-web-benchmark/node_modules
@@ -270,9 +276,7 @@ REQUIRED_AUDIO_PLUGIN_FILES = $(PLUGINS_DIR)/$(AUDIO_LIB)
 REQUIRED_INPUT_PLUGIN_FILES = $(PLUGINS_DIR)/$(INPUT_LIB)
 REQUIRED_RSP_PLUGIN_FILES = $(PLUGINS_DIR)/$(RSP_LIB)
 
-ifeq ($(video), rice)
-REQUIRED_VIDEO_PLUGIN_FILES = $(PLUGINS_DIR)/$(RICE_VIDEO_LIB)
-else ifeq ($(video), gliden64)
+ifeq ($(video), gliden64)
 REQUIRED_VIDEO_PLUGIN_FILES = $(PLUGINS_DIR)/$(GLIDEN_VIDEO_LIB)
 else
 REQUIRED_VIDEO_PLUGIN_FILES = $(PLUGINS_DIR)/$(RICE_VIDEO_LIB)
@@ -299,10 +303,7 @@ REQUIRED_AUDIO_PLUGIN_FILES = $(AUDIO_LIB_STATIC)
 REQUIRED_INPUT_PLUGIN_FILES = $(INPUT_LIB_STATIC)
 REQUIRED_RSP_PLUGIN_FILES = $(RSP_LIB_STATIC)
 
-ifeq ($(video), rice)
-STATIC_LIBRARIES += ../../../$(RICE_VIDEO_LIB_STATIC)
-REQUIRED_VIDEO_PLUGIN_FILES = $(RICE_VIDEO_LIB_STATIC)
-else ifeq ($(video), gliden64)
+ifeq ($(video), gliden64)
 STATIC_LIBRARIES += ../../../$(GLIDEN_VIDEO_LIB_STATIC)
 REQUIRED_VIDEO_PLUGIN_FILES = $(GLIDEN_VIDEO_LIB_STATIC)
 else
@@ -405,6 +406,14 @@ $(BIN_DIR)/data/Glide64mk2.ini: $(GLIDE_CFG_DIR)/Glide64mk2.ini
 	cp $< $@
 
 $(BIN_DIR)/data/RiceVideoLinux.ini: $(RICE_CFG_DIR)/RiceVideoLinux.ini
+	mkdir -p $(@D)
+	cp $< $@
+
+$(BIN_DIR)/data/font.ttf: $(CORE)/data/font.ttf
+	mkdir -p $(@D)
+	cp $< $@
+
+$(BIN_DIR)/data/GLideN64.ini: $(GLIDEN_VIDEO)/ini/GLideN64.ini
 	mkdir -p $(@D)
 	cp $< $@
 
