@@ -433,6 +433,7 @@ $(BIN_DIR)/idbfs-file-utils.js: $(SCRIPTS_DIR)/idbfs-file-utils.js
 $(BIN_DIR)/main.js: $(SCRIPTS_DIR)/main.js
 	cp $< $@
 	sed -i '1s/^/import createModule from "\.\/$(TARGET_JS)"\n/' $(BIN_DIR)/main.js
+	sed -i '1s/^/export const mainMupen64PlusWebJsFileName = "$(TARGET_JS)";\n/' $(BIN_DIR)/main.js
 
 $(BIN_DIR)/data/mupen64plus.cfg: $(CFG_DIR)/mupen64plus-web.cfg
 	cp $< $@
