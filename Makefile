@@ -261,6 +261,8 @@ OPT_FLAGS := $(OPT_LEVEL) \
 			$(DEBUG_LEVEL) \
 			-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"ccall\", \"cwrap\", \"getValue\", \"FS\", \"setValue\", \"netplay_request_pause\", \"netplay_request_resume\"]' \
 			-DEMSCRIPTEN=1 \
+			-pthread \
+			-sOFFSCREENCANVAS_SUPPORT=1 \
 			-DUSE_FRAMESKIPPER=1
 
 
@@ -477,7 +479,7 @@ $(BIN_DIR)/$(TARGET_JS): $(INDEX_TEMPLATE) $(REQUIRED_PLUGINS) $(INPUT_FILES)
 			--js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js \
 			-s INITIAL_MEMORY=$(MEMORY) \
 			-s DEMANGLE_SUPPORT=1 -s MODULARIZE=1 -s EXPORT_NAME=\"createModule\" \
-			-s ENVIRONMENT='web,worker' -s EXPORT_ES6=0 \
+			-s ENVIRONMENT='web,worker' -sPTHREAD_POOL_SIZE=1 -s EXPORT_ES6=0 \
 			-s NO_EXIT_RUNTIME=1 -s USE_ZLIB=1 \
 			-s USE_SDL=2 -s USE_LIBPNG=1 -s USE_FREETYPE=1 -s FULL_ES3=1 -s MAX_WEBGL_VERSION=2 \
 			-s ASYNCIFY=1 -s 'ASYNCIFY_IMPORTS=[\"waitForReliableMessage\",\"waitForAsyncAction\",\"findAutoInputConfigName\", \"sdl_init_audio_device\", \"initIDBFS\", \"writeROM\", \"copyInputAutoConfig\", \"startCore\", \"compileAndPatchModule\"]' \
