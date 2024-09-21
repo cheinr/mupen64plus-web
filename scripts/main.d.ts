@@ -20,6 +20,7 @@ declare module 'mupen64plus-web' {
   export function preloadAutoInputConfig(publicPath: string, shouldForce: boolean): Promise<void>;
   export function findAutoInputConfig(gamepadName: string): Promise<any>;
   export function writeAutoInputConfig(gamepadName: string, config: any): Promise<void>;
+  export const mainMupen64PlusWebJsFileName: string;
 
 }
 
