@@ -106,12 +106,9 @@ BENCHMARK_DEPS = \
 OPT_LEVEL ?= -O2
 DEBUG_LEVEL ?=
 
-#MEMORY = 524288
-#MEMORY =  402653184
-#MEMORY =  655360000
-MEMORY =   1310720000
-#MEMORY = 268435456
-#MEMORY = 134217728
+
+STACK_SIZE = 5MB
+INITIAL_HEAP = 16MB
 
 NATIVE_BIN := bin
 NATIVE_PLUGINS := \
@@ -239,28 +236,29 @@ $(NATIVE_BIN)/mupen64plus-audio-sdl.so: $(NATIVE_BIN) $(NATIVE_AUDIO_DIR)/mupen6
 
 ifeq ($(config), debug)
 
-OPT_LEVEL = -O2 -g3 -s -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=1 -s SAFE_HEAP=1 #-Oz -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -fsanitize=address -Wcast-align -Wover-aligned -s WARN_UNALIGNED=1 ASSERTIONS=0 -s NO_EXIT_RUNTIME=1 -s ALLOW_MEMORY_GROWTH -fsanitize=address 			-s INITIAL_MEMORY=$(MEMORY) #  	-s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined
+OPT_LEVEL = -O2 -g3 -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=2 -s SAFE_HEAP=1 #-Oz -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -fsanitize=address -Wcast-align -Wover-aligned -s WARN_UNALIGNED=1 ASSERTIONS=0 -s NO_EXIT_RUNTIME=1 -fsanitize=address #  	-s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined
 DEBUG_LEVEL = -g3
 
 else ifeq ($(config), release)
 
-OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1 -s VERBOSE=1
+OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s VERBOSE=1
 
 else ifeq ($(config), benchmark)
 
-OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1  -sNO_DISABLE_EXCEPTION_CATCHING -DBENCHMARK_MODE=1 -s VERBOSE=1
+OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -sNO_DISABLE_EXCEPTION_CATCHING -DBENCHMARK_MODE=1 -s VERBOSE=1
 
 else
 
-OPT_LEVEL = -O3 -g3 -s NO_EXIT_RUNTIME -s ALLOW_MEMORY_GROWTH=1 -s VERBOSE=1
+OPT_LEVEL = -O3 -g3 -s NO_EXIT_RUNTIME -s VERBOSE=1
 
 endif
 
 
 OPT_FLAGS := $(OPT_LEVEL) \
 			$(DEBUG_LEVEL) \
-			-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"ccall\", \"cwrap\", \"getValue\", \"FS\", \"setValue\", \"netplay_request_pause\", \"netplay_request_resume\"]' \
+			-s 'EXPORTED_RUNTIME_METHODS=[\"ccall\", \"cwrap\", \"getValue\", \"FS\", \"setValue\", \"netplay_request_pause\", \"netplay_request_resume\"]' \
 			-DEMSCRIPTEN=1 \
+			-sNO_EXIT_RUNTIME \
 			-DUSE_FRAMESKIPPER=1
 
 
@@ -475,7 +473,9 @@ $(BIN_DIR)/$(TARGET_JS): $(INDEX_TEMPLATE) $(REQUIRED_PLUGINS) $(INPUT_FILES)
 			--shell-file $(INDEX_TEMPLATE) \
 			--js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js \
 			--js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js \
-			-s INITIAL_MEMORY=$(MEMORY) \
+			-s INITIAL_HEAP=$(INITIAL_HEAP) \
+			-s STACK_SIZE=$(STACK_SIZE) \
+			-s ALLOW_MEMORY_GROWTH=1 \
 			-s DEMANGLE_SUPPORT=1 -s MODULARIZE=1 -s EXPORT_NAME=\"createModule\" \
 			-s ENVIRONMENT='web,worker' -s EXPORT_ES6=0 \
 			-s NO_EXIT_RUNTIME=1 -s USE_ZLIB=1 \
@@ -509,7 +509,7 @@ $(REQUIRED_CORE_PLUGIN_FILES): .FORCE
 		GLU_CFLAGS="" \
 		NETPLAY=1 \
 		V=1 \
-		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -s EXPORT_ALL=1 -s INITIAL_MEMORY=$(MEMORY) -DONSCREEN_FPS=1 -s USE_SDL=2 -s ASYNCIFY=1 -I ../../src/api --js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js" \
+		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -s EXPORT_ALL=1 -DONSCREEN_FPS=1 -s USE_SDL=2 -s ASYNCIFY=1 -I ../../src/api --js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js" \
 		$(PLUGIN_BUILD_TARGET)
 
 
