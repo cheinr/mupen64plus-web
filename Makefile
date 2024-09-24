@@ -236,8 +236,12 @@ $(NATIVE_BIN)/mupen64plus-audio-sdl.so: $(NATIVE_BIN) $(NATIVE_AUDIO_DIR)/mupen6
 
 ifeq ($(config), debug)
 
-OPT_LEVEL = -O2 -g3 -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=2 -s SAFE_HEAP=1 #-Oz -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -fsanitize=address -Wcast-align -Wover-aligned -s WARN_UNALIGNED=1 ASSERTIONS=0 -s NO_EXIT_RUNTIME=1 -fsanitize=address #  	-s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined
+OPT_LEVEL = -O2 -g3 -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=2 -s SAFE_HEAP=1 #-Oz -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -fsanitize=address -Wcast-align -Wover-aligned -s WARN_UNALIGNED=1 ASSERTIONS=0 -s NO_EXIT_RUNTIME=1 -fsanitize=address #	-s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined
 DEBUG_LEVEL = -g3
+
+else ifeq ($(config), memtest)
+
+OPT_LEVEL = -O2 -g3 -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=2 -s SAFE_HEAP=1
 
 else ifeq ($(config), release)
 
