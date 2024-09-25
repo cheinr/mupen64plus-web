@@ -1,4 +1,4 @@
-import { updateAutoInputConfig } from './gamepad-utils';
+import { updateAutoInputConfig } from '../../scripts/gamepad-utils';
 
 
 test("OverwritesConfig", () => {
