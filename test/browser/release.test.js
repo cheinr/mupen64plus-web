@@ -125,5 +125,23 @@ describe('Functionality Tests', () => {
 
     expect(screenshotAfterResume).not.toEqual(screenshotAfterFrameAdvance);
   }, 30000);
+
+  test('heap usage', async () => {
+    const page = await browser.newPage();
+
+    await page.goto('http://localhost:1337/?maxVIs=150');
+
+    const elementHandle = await page.$("input[type=file]");
+    await elementHandle.uploadFile(path.join(__dirname, '../../mupen64plus-web-benchmark/m64p_test_rom.v64'));
+
+    await page.waitForSelector('#done', { timeout: 60000 });
+
+    const { JSHeapUsedSize, JSHeapTotalSize } = await page.metrics();
+
+    console.log("JSHeapUsedSize: %o", JSHeapUsedSize);
+
+    expect(JSHeapUsedSize).toBeLessThan(32 * 1000000);
+
+  }, 15000);
 });
 
