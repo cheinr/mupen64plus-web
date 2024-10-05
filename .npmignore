@@ -50,7 +50,5 @@ mupen64plus-audio-web/projects/unix/mupen64plus-audio-web.js
 # see npmjs.com/npmignore for more details.
 mupen64plus-audio-web/projects/unix/_obj-web/
 *.wat
-/GLideN64
-/cfg/gliden64
 /utils/
 mupen64plus-web-benchmark/
