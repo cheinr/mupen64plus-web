@@ -93,10 +93,18 @@ INPUT_FILES = \
 	$(BIN_DIR)/data/mupen64plus.ini \
 	# $(BIN_DIR)/data/Glide64mk2.ini \
 
+ifndef video
+video = rice
+else ifeq ($(video), rice)
+else ifeq ($(video), gliden64)
+else
+$(error Invalid video option '$(video)' provided!)
+endif
+
 ifeq ($(video), gliden64)
 INPUT_FILES += $(BIN_DIR)/data/font.ttf
 INPUT_FILES += $(BIN_DIR)/data/GLideN64.ini
-else
+else ifeq ($(video), rice)
 INPUT_FILES += $(BIN_DIR)/data/RiceVideoLinux.ini
 endif
 
@@ -280,10 +288,9 @@ REQUIRED_RSP_PLUGIN_FILES = $(PLUGINS_DIR)/$(RSP_LIB)
 
 ifeq ($(video), gliden64)
 REQUIRED_VIDEO_PLUGIN_FILES = $(PLUGINS_DIR)/$(GLIDEN_VIDEO_LIB)
-else
+else ifeq ($(video), rice)
 REQUIRED_VIDEO_PLUGIN_FILES = $(PLUGINS_DIR)/$(RICE_VIDEO_LIB)
 endif
-
 
 PLUGIN_BUILD_TARGET = all
 
@@ -308,7 +315,7 @@ REQUIRED_RSP_PLUGIN_FILES = $(RSP_LIB_STATIC)
 ifeq ($(video), gliden64)
 STATIC_LIBRARIES += ../../../$(GLIDEN_VIDEO_LIB_STATIC)
 REQUIRED_VIDEO_PLUGIN_FILES = $(GLIDEN_VIDEO_LIB_STATIC)
-else
+else ifeq ($(video), rice)
 STATIC_LIBRARIES += ../../../$(RICE_VIDEO_LIB_STATIC)
 REQUIRED_VIDEO_PLUGIN_FILES = $(RICE_VIDEO_LIB_STATIC)
 endif
