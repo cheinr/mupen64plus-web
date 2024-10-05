@@ -10,8 +10,17 @@ const config = {
       },
     },
     {
-      displayName: "browser-tests",
-      testMatch: ["**/test/browser/*.test.js"],
+      displayName: "all-tests",
+      testMatch: [
+        "**/test/browser/*.test.js",
+        "**/scripts/gamepad-utils.test.js"
+      ],
+      moduleFileExtensions: ["js"],
+      runner: 'jest-serial-runner'
+    },
+    {
+      displayName: "release-browser-tests",
+      testMatch: ["**/test/browser/release.test.js"],
       moduleFileExtensions: ["js"],
       runner: 'jest-serial-runner'
     }

@@ -8,10 +8,17 @@ const {
   prepareBenchmark
 } = require('./test-utils');
 
+const maybeUsePreExistingBuildArg = process.argv.filter((x) => x.startsWith('--use-pre-existing-build'))[0];
+const shouldRebuildMupen64Plus = maybeUsePreExistingBuildArg
+                               ? !maybeUsePreExistingBuildArg.split('=')[1] == 'true'
+                               : true;
+
 expect.extend({ toMatchImageSnapshot });
 
 beforeAll(async () => {
-  await buildMupen64PlusWithArgs('config=release -j8');
+  if (shouldRebuildMupen64Plus) {
+    await buildMupen64PlusWithArgs('config=release -j8');
+  }
   await prepareBenchmark();
 }, 300 * 1000);
 

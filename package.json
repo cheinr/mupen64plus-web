@@ -5,7 +5,9 @@
   "main": "./bin/web/main.js",
   "types": "./scripts/main.d.ts",
   "scripts": {
-    "test": "node ./node_modules/jest/bin/jest.js"
+    "test:extensive": "node ./node_modules/jest/bin/jest.js --selectProjects all-tests",
+    "test": "node ./node_modules/jest/bin/jest.js --selectProjects release-browser-tests '--use-pre-existing-build=true'",
+    "release": "make clean-web && make config=release -j8 && npm run test"
   },
   "repository": {
     "type": "git",
