@@ -94,7 +94,7 @@ INPUT_FILES = \
 	# $(BIN_DIR)/data/Glide64mk2.ini \
 
 ifndef video
-video = rice
+video = gliden64
 else ifeq ($(video), rice)
 else ifeq ($(video), gliden64)
 else
