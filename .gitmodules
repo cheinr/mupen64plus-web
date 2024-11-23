@@ -31,3 +31,9 @@
 [submodule "GLideN64"]
 	path = GLideN64
 	url = git@github.com:cheinr/GLideN64.git
+[submodule "mupen64plus-rsp-cxd4"]
+	path = mupen64plus-rsp-cxd4
+	url = git@github.com:cheinr/mupen64plus-rsp-cxd4.git
+[submodule "angrylion-rdp-plus"]
+	path = angrylion-rdp-plus
+	url = git@github.com:cheinr/angrylion-rdp-plus.git
