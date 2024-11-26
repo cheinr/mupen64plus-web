@@ -57,13 +57,13 @@ RICE_VIDEO_DIR = $(RICE)/projects/unix/
 RICE_VIDEO_LIB_STATIC = $(RICE_VIDEO_DIR)$(RICE)-web.a
 
 ANGRYLION_RDP = mupen64plus-video-angrylion-plus
-ANGRYLION_RDP_LIB = $(ANGRYLION_RDP)$(POSTFIX)$(SO_EXTENSION)
+ANGRYLION_RDP_LIB = $(ANGRYLION_RDP)$(SO_EXTENSION)
 ANGRYLION_RDP_LIB_JS = $(ANGRYLION_RDP)$(POSTFIX).wasm
 ANGRYLION_RDP_DIR = angrylion-rdp-plus
 ANGRYLION_RDP_LIB_STATIC = $(ANGRYLION_RDP_DIR)/build/lib$(ANGRYLION_RDP)-web.a
 
 RSP_CXD4 = mupen64plus-rsp-cxd4
-RSP_CXD4_LIB = $(RSP_CXD4)$(POSTFIX)$(SO_EXTENSION)
+RSP_CXD4_LIB = $(RSP_CXD4)-sse2$(SO_EXTENSION)
 RSP_CXD4_LIB_JS = $(RSP_CXD4)$(POSTFIX).wasm
 RSP_CXD4_DIR = $(RSP_CXD4)/projects/unix/
 RSP_CXD4_LIB_STATIC = $(RSP_CXD4_DIR)$(RSP_CXD4)-web.a
@@ -144,7 +144,9 @@ NATIVE_PLUGINS := \
 		$(NATIVE_BIN)/libmupen64plus.so.2 \
 		$(NATIVE_BIN)/mupen64plus-input-sdl.so \
 		$(NATIVE_BIN)/mupen64plus-rsp-hle.so \
+		$(NATIVE_BIN)/$(RSP_CXD4_LIB) \
 		$(NATIVE_BIN)/mupen64plus-video-rice-web-netplay.so \
+		$(NATIVE_BIN)/mupen64plus-video-angrylion-plus.so \
 		$(NATIVE_BIN)/mupen64plus-audio-sdl.so \
 
 NATIVE_EXE := $(NATIVE_BIN)/mupen64plus
@@ -213,8 +215,10 @@ clean-native:
 	cd $(CORE_DIR) && $(MAKE) clean
 	cd $(INPUT_DIR) && $(MAKE) clean
 	cd $(RSP_DIR) && $(MAKE) clean
+	cd $(RSP_CXD4_DIR) && $(MAKE) clean
 	cd $(VIDEO_DIR) && $(MAKE) clean
 	cd $(RICE_VIDEO_DIR) && $(MAKE) clean
+	rm -rf $(ANGRYLION_RDP_DIR)/build
 	cd $(AUDIO_DIR) && $(MAKE) clean
 
 clean: clean-web clean-native
@@ -259,6 +263,18 @@ $(RICE_VIDEO_DIR)/mupen64plus-video-rice-web-netplay.so:
 
 $(NATIVE_BIN)/mupen64plus-video-rice-web-netplay.so: $(NATIVE_BIN) $(RICE_VIDEO_DIR)/mupen64plus-video-rice-web-netplay.so
 	cp $(RICE_VIDEO_DIR)/mupen64plus-video-rice-web-netplay.so $@
+
+$(ANGRYLION_RDP_DIR)/build/mupen64plus-video-angrylion-plus.so:
+	cd $(ANGRYLION_RDP_DIR) && mkdir -p build && cd build && cmake .. && make all
+
+$(NATIVE_BIN)/mupen64plus-video-angrylion-plus.so: $(NATIVE_BIN) $(ANGRYLION_RDP_DIR)/build/mupen64plus-video-angrylion-plus.so
+	cp $(ANGRYLION_RDP_DIR)/build/mupen64plus-video-angrylion-plus.so $@
+
+$(RSP_CXD4_DIR)/$(RSP_CXD4_LIB):
+	cd $(RSP_CXD4_DIR) && make all
+
+$(NATIVE_BIN)/$(RSP_CXD4_LIB): $(NATIVE_BIN) $(RSP_CXD4_DIR)/$(RSP_CXD4_LIB)
+	cp $(RSP_CXD4_DIR)/$(RSP_CXD4_LIB) $@
 
 $(NATIVE_AUDIO_DIR)/mupen64plus-audio-sdl.so:
 	cd $(NATIVE_AUDIO_DIR) && $(MAKE) all
