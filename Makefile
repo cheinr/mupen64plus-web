@@ -2,7 +2,7 @@
 # to build web version: 'make web'
 # to build native version: 'make native'
 # to run web version: 'make run-web'
-# to run native version: 'make run-native'
+# to run native version: 'make run-native rom="<rom filepath>"'
 
 
 GIT_COMMIT = $(shell git rev-parse --short=10 HEAD)
@@ -51,7 +51,7 @@ GLIDEN_VIDEO_LIB = $(GLIDEN_VIDEO)$(POSTFIX)$(SO_EXTENSION)
 GLIDEN_VIDEO_LIB_STATIC = $(GLIDEN_VIDEO_DIR)/libmupen64plus-video-GLideN64-web.a
 
 RICE = mupen64plus-video-rice-web-netplay
-RICE_VIDEO_LIB = $(RICE)-web$(POSTFIX)$(SO_EXTENSION)
+RICE_VIDEO_LIB = $(RICE)$(SO_EXTENSION)
 RICE_VIDEO_LIB_JS = $(RICE)$(POSTFIX).wasm
 RICE_VIDEO_DIR = $(RICE)/projects/unix/
 RICE_VIDEO_LIB_STATIC = $(RICE_VIDEO_DIR)$(RICE)-web.a
@@ -76,7 +76,7 @@ INPUT_LIB_STATIC = $(INPUT_DIR)/$(INPUT)$(POSTFIX).a
 
 RSP ?= mupen64plus-rsp-hle
 RSP_DIR = $(RSP)/projects/unix
-RSP_LIB = $(RSP)$(POSTFIX)$(SO_EXTENSION)
+RSP_LIB = $(RSP)$(SO_EXTENSION)
 RSP_LIB_JS = $(RSP)$(POSTFIX).wasm
 RSP_LIB_STATIC = $(RSP_DIR)/$(RSP)$(POSTFIX).a
 
@@ -117,10 +117,16 @@ endif
 ifeq ($(video), gliden64)
 INPUT_FILES += $(BIN_DIR)/data/font.ttf
 INPUT_FILES += $(BIN_DIR)/data/GLideN64.ini
+NATIVE_VIDEO_PLUGIN = $(GLIDEN_VIDEO_LIB)
+NATIVE_RSP_PLUGIN = $(RSP_LIB)
 else ifeq ($(video), rice)
 INPUT_FILES += $(BIN_DIR)/data/RiceVideoLinux.ini
+NATIVE_VIDEO_PLUGIN = $(RICE_VIDEO_LIB)
+NATIVE_RSP_PLUGIN = $(RSP_LIB)
 else ifeq ($(video), angrylion)
 # TODO
+NATIVE_VIDEO_PLUGIN = $(ANGRYLION_RDP_LIB)
+NATIVE_RSP_PLUGIN = $(RSP_CXD4_LIB)
 endif
 
 BENCHMARK_DEPS = \
@@ -152,7 +158,6 @@ ifeq ($(PLATFORM), native)
 endif
 
 all: $(ALL_DEPS)
-	node remove-table-max-size.js bin/web/index.$(GIT_COMMIT).wasm
 
 run-benchmark: $(BENCHMARK_DEPS)
 	cd mupen64plus-web-benchmark && npm run benchmark
@@ -180,9 +185,14 @@ NATIVE_ARGS ?=
 run-native: native
 	./$(NATIVE_EXE) \
 			$(NATIVE_ARGS) \
+			--verbose \
 			--corelib $(NATIVE_BIN)/libmupen64plus.so.2 \
+			--gfx $(NATIVE_VIDEO_PLUGIN) \
+			--rsp $(NATIVE_RSP_PLUGIN) \
 			--configdir $(CFG_DIR) \
-			--datadir $(CFG_DIR)
+			--datadir $(CFG_DIR) \
+			--plugindir $(NATIVE_BIN) \
+			$(rom)
 
 
 # use browser=chromium arg (or chrome etc) to test in broser
@@ -532,7 +542,9 @@ $(BIN_DIR)/$(TARGET_JS): $(INDEX_TEMPLATE) $(REQUIRED_PLUGINS) $(INPUT_FILES)
 			-s ASYNCIFY=1 -s 'ASYNCIFY_IMPORTS=[\"waitForReliableMessage\",\"waitForAsyncAction\",\"findAutoInputConfigName\", \"sdl_init_audio_device\", \"initIDBFS\", \"writeROM\", \"copyInputAutoConfig\", \"startCore\", \"compileAndPatchModule\"]' \
 			-s USE_BOOST_HEADERS=1 \
 			-DEMSCRIPTEN=1 --pre-js $(PRE_JS) --post-js $(POST_JS)" \
-			all
+			all && \
+			cd ../../../ && \
+			node remove-table-max-size.js bin/web/index.$(GIT_COMMIT).wasm
 
 core: $(CORE_DIR)/$(CORE_LIB)
 
