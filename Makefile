@@ -44,10 +44,10 @@ VIDEO_LIB_JS = $(VIDEO)$(POSTFIX).wasm
 VIDEO_LIB = $(VIDEO)$(POSTFIX)$(SO_EXTENSION)
 VIDEO_LIB_STATIC = $(VIDEO_DIR)/$(VIDEO)-web.a
 
-GLIDEN_VIDEO ?= GLideN64
-GLIDEN_VIDEO_DIR = $(GLIDEN_VIDEO)/projects/cmake
+GLIDEN_VIDEO ?= mupen64plus-video-GLideN64
+GLIDEN_VIDEO_DIR = GLideN64/projects/cmake
 GLIDEN_VIDEO_LIB_JS = $(GLIDEN_VIDEO)$(POSTFIX).wasm
-GLIDEN_VIDEO_LIB = $(GLIDEN_VIDEO)$(POSTFIX)$(SO_EXTENSION)
+GLIDEN_VIDEO_LIB = $(GLIDEN_VIDEO)$(SO_EXTENSION)
 GLIDEN_VIDEO_LIB_STATIC = $(GLIDEN_VIDEO_DIR)/libmupen64plus-video-GLideN64-web.a
 
 RICE = mupen64plus-video-rice-web-netplay
@@ -147,6 +147,7 @@ NATIVE_PLUGINS := \
 		$(NATIVE_BIN)/$(RSP_CXD4_LIB) \
 		$(NATIVE_BIN)/mupen64plus-video-rice-web-netplay.so \
 		$(NATIVE_BIN)/mupen64plus-video-angrylion-plus.so \
+		$(NATIVE_BIN)/$(GLIDEN_VIDEO_LIB) \
 		$(NATIVE_BIN)/mupen64plus-audio-sdl.so \
 
 NATIVE_EXE := $(NATIVE_BIN)/mupen64plus
@@ -218,6 +219,13 @@ clean-native:
 	cd $(RSP_CXD4_DIR) && $(MAKE) clean
 	cd $(VIDEO_DIR) && $(MAKE) clean
 	cd $(RICE_VIDEO_DIR) && $(MAKE) clean
+	rm -rf $(GLIDEN_VIDEO_DIR)/plugin
+	rm -rf $(GLIDEN_VIDEO_DIR)/inc
+	rm -rf $(GLIDEN_VIDEO_DIR)/osal
+	rm -rf $(GLIDEN_VIDEO_DIR)/GLideNHQ
+	rm -rf $(GLIDEN_VIDEO_DIR)/Makefile
+	rm -f $(GLIDEN_VIDEO_DIR)/$(GLIDEN_VIDEO_LIB_JS)
+	rm -fr $(GLIDEN_VIDEO_DIR)/CMakeFiles
 	rm -rf $(ANGRYLION_RDP_DIR)/build
 	cd $(AUDIO_DIR) && $(MAKE) clean
 
@@ -269,6 +277,12 @@ $(ANGRYLION_RDP_DIR)/build/mupen64plus-video-angrylion-plus.so:
 
 $(NATIVE_BIN)/mupen64plus-video-angrylion-plus.so: $(NATIVE_BIN) $(ANGRYLION_RDP_DIR)/build/mupen64plus-video-angrylion-plus.so
 	cp $(ANGRYLION_RDP_DIR)/build/mupen64plus-video-angrylion-plus.so $@
+
+$(GLIDEN_VIDEO_DIR)/plugin/Release/$(GLIDEN_VIDEO_LIB):
+	cd $(GLIDEN_VIDEO_DIR) && cmake -DMUPENPLUSAPI=ON -DMUPENPLUSAPI_GLIDENUI=OFF ../../src && make all
+
+$(NATIVE_BIN)/$(GLIDEN_VIDEO_LIB): $(NATIVE_BIN) $(GLIDEN_VIDEO_DIR)/plugin/Release/$(GLIDEN_VIDEO_LIB)
+	cp $(GLIDEN_VIDEO_DIR)/plugin/Release/$(GLIDEN_VIDEO_LIB) $@
 
 $(RSP_CXD4_DIR)/$(RSP_CXD4_LIB):
 	cd $(RSP_CXD4_DIR) && make all
@@ -486,7 +500,7 @@ $(BIN_DIR)/data/font.ttf: $(CORE)/data/font.ttf
 	mkdir -p $(@D)
 	cp $< $@
 
-$(BIN_DIR)/data/GLideN64.ini: $(GLIDEN_VIDEO)/ini/GLideN64.ini
+$(BIN_DIR)/data/GLideN64.ini: $(GLIDEN_VIDEO_DIR)/../../ini/GLideN64.ini
 	mkdir -p $(@D)
 	cp $< $@
 
