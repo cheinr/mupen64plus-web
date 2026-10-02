@@ -448,11 +448,12 @@ rice: $(RICE_VIDEO_DIR)/$(RICE_VIDEO_LIB_JS)
 $(GLIDEN_VIDEO_LIB_STATIC): .FORCE
 	cd $(GLIDEN_VIDEO_DIR) && \
 			emcmake cmake -DMUPENPLUSAPI=ON -DMUPENPLUSAPI_GLIDENUI=OFF -DEMSCRIPTEN=ON -DM64P_STATIC_PLUGINS=ON -DCMAKE_CXX_FLAGS="$(OPT_FLAGS) -DEMSCRIPTEN=1 -DUSE_GLES=1 -DUSE_SDL=2" -DCMAKE_C_FLAGS="$(OPT_FLAGS) -DEMSCRIPTEN=1 -sUSE_SDL=2" ../../src && \
-			emmake $(MAKE)
+			emmake $(MAKE) AR=emar
 
 $(RICE_VIDEO_LIB_STATIC): .FORCE
 	cd $(RICE_VIDEO_DIR) && \
 			emmake $(MAKE) \
+			AR=emar \
 			CROSS_COMPILE="" \
 			POSTFIX=-web\
 			UNAME=Linux \
@@ -526,8 +527,8 @@ $(BIN_DIR)/idbfs-file-utils.js: $(SCRIPTS_DIR)/idbfs-file-utils.js
 
 $(BIN_DIR)/main.js: $(SCRIPTS_DIR)/main.js
 	cp $< $@
-	sed -i '1s/^/import createModule from "\.\/$(TARGET_JS)"\n/' $(BIN_DIR)/main.js
-	sed -i '1s/^/export const mainMupen64PlusWebJsFileName = "$(TARGET_JS)";\n/' $(BIN_DIR)/main.js
+	sed -i '' '1s/^/import createModule from "\.\/$(TARGET_JS)"\n/' $(BIN_DIR)/main.js
+	sed -i '' '1s/^/export const mainMupen64PlusWebJsFileName = "$(TARGET_JS)";\n/' $(BIN_DIR)/main.js
 
 $(BIN_DIR)/data/mupen64plus.cfg: $(CFG_DIR)/mupen64plus-web.cfg
 	cp $< $@
@@ -545,6 +546,7 @@ $(BIN_DIR)/$(TARGET_JS): $(INDEX_TEMPLATE) $(REQUIRED_PLUGINS) $(INPUT_FILES)
 	cd $(UI_DIR) && \
 	 	emmake make \
 			POSTFIX=-web \
+			AR=emar \
 			TARGET=$(BIN_DIR)/$(TARGET_JS) \
 			UNAME=Linux \
 			EMSCRIPTEN=1 \
@@ -591,6 +593,7 @@ $(REQUIRED_CORE_PLUGIN_FILES): .FORCE
 	cd $(CORE_DIR) && \
 	emmake make \
 		POSTFIX=-web \
+		AR=emar \
 		UNAME=Linux \
 		EMSCRIPTEN=1 \
 		DYNAREC=1 \
@@ -622,7 +625,7 @@ $(LIBSRC_DIR)/build/src/libsamplerate.a:
 	mkdir -p build && \
 	cd build && \
 	emcmake cmake -DCMAKE_CXX_FLAGS="$(OPT_FLAGS) -DEMSCRIPTEN=1" -DCMAKE_C_FLAGS="$(OPT_FLAGS) -DEMSCRIPTEN=1" .. && \
-	emmake make
+	emmake make AR=emar
 
 audio: $(AUDIO_DIR)/$(AUDIO_LIB)
 
@@ -630,6 +633,7 @@ $(REQUIRED_AUDIO_PLUGIN_FILES): $(LIBSRC_DIR)/build/src/libsamplerate.a .FORCE
 	cd $(AUDIO_DIR) && \
 		emmake make \
 		POSTFIX=-web \
+		AR=emar \
 		UNAME="Linux" \
 		EMSCRIPTEN=1 \
 		M64P_STATIC_PLUGINS=$(USE_STATIC_PLUGINS) \
@@ -654,6 +658,7 @@ build-video:
 	cd $(VIDEO_DIR) && \
 	emmake make \
 		POSTFIX=-web \
+		AR=emar \
 		USE_FRAMESKIPPER=1 \
 		EMSCRIPTEN=1 \
 		M64P_STATIC_PLUGINS=$(USE_STATIC_PLUGINS) \
@@ -682,6 +687,7 @@ $(REQUIRED_INPUT_PLUGIN_FILES): .FORCE
 	cd $(INPUT_DIR) && \
 	emmake make \
 		POSTFIX=-web \
+		AR=emar \
 		UNAME="Linux" \
 		EMSCRIPTEN=1 \
 		M64P_STATIC_PLUGINS=$(USE_STATIC_PLUGINS) \
@@ -708,6 +714,7 @@ $(RSP_LIB_STATIC): .FORCE
 	cd $(RSP_DIR)&& \
 	emmake make \
 		POSTFIX=-web \
+		AR=emar \
 		UNAME=Linux \
 		EMSCRIPTEN=1 \
 		M64P_STATIC_PLUGINS=$(USE_STATIC_PLUGINS) \
@@ -728,6 +735,7 @@ $(RSP_CXD4_LIB_STATIC): .FORCE
 	cd $(RSP_CXD4_DIR) && \
 	emmake make \
 		POSTFIX=-web \
+		AR=emar \
 		UNAME=Linux \
 		EMSCRIPTEN=1 \
 		M64P_STATIC_PLUGINS=$(USE_STATIC_PLUGINS) \
