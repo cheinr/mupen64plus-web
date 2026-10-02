@@ -135,7 +135,6 @@ BENCHMARK_DEPS = \
 OPT_LEVEL ?= -O2
 DEBUG_LEVEL ?=
 
-
 STACK_SIZE = 5MB
 INITIAL_HEAP = 16MB
 
@@ -299,34 +298,42 @@ $(NATIVE_BIN)/mupen64plus-audio-sdl.so: $(NATIVE_BIN) $(NATIVE_AUDIO_DIR)/mupen6
 
 ifeq ($(config), debug)
 
-OPT_LEVEL = -O2 -g3 -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=2 -s SAFE_HEAP=1 #-Oz -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -fsanitize=address -Wcast-align -Wover-aligned -s WARN_UNALIGNED=1 ASSERTIONS=0 -s NO_EXIT_RUNTIME=1 -fsanitize=address #	-s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined
+OPT_LEVEL = -O2 -g3 #-Oz -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -fsanitize=address -Wcast-align -Wover-aligned -s WARN_UNALIGNED=1 ASSERTIONS=0 -s NO_EXIT_RUNTIME=1 -fsanitize=address #	-s STACK_OVERFLOW_CHECK=2 -fsanitize=undefined
+LDFLAGS += -s STACK_OVERFLOW_CHECK=2 -s ASSERTIONS=1 -s SAFE_HEAP=1
+
 DEBUG_LEVEL = -g3
 
 else ifeq ($(config), memtest)
 
-OPT_LEVEL = -O2 -g3 -s ASSERTIONS=1 -s STACK_OVERFLOW_CHECK=2 -s SAFE_HEAP=1
+OPT_LEVEL = -O2 -g3
+LDFLAGS += -s SAFE_HEAP=1 -s STACK_OVERFLOW_CHECK=2 -s ASSERTIONS=1 
 
 else ifeq ($(config), release)
 
-OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -s VERBOSE=1
+OPT_LEVEL = -O3 
+LDFLAGS += -s AGGRESSIVE_VARIABLE_ELIMINATION=1
 
 else ifeq ($(config), benchmark)
 
-OPT_LEVEL = -O3 -s AGGRESSIVE_VARIABLE_ELIMINATION=1 -sNO_DISABLE_EXCEPTION_CATCHING -DBENCHMARK_MODE=1 -s VERBOSE=1
+OPT_LEVEL = -O3 -sNO_DISABLE_EXCEPTION_CATCHING -DBENCHMARK_MODE=1
+LDFLAGS += -s AGGRESSIVE_VARIABLE_ELIMINATION=1
 
 else
 
-OPT_LEVEL = -O3 -g3 -s NO_EXIT_RUNTIME -s VERBOSE=1
+OPT_LEVEL = -O3 -g3
 
 endif
 
 
 OPT_FLAGS := $(OPT_LEVEL) \
 			$(DEBUG_LEVEL) \
-			-s 'EXPORTED_RUNTIME_METHODS=[\"ccall\", \"cwrap\", \"getValue\", \"FS\", \"setValue\", \"netplay_request_pause\", \"netplay_request_resume\"]' \
 			-DEMSCRIPTEN=1 \
-			-sNO_EXIT_RUNTIME \
 			-DUSE_FRAMESKIPPER=1
+
+LDFLAGS := -s 'EXPORTED_FUNCTIONS=[\"_netplay_request_pause\", \"_netplay_request_resume\", \"_main\"]' \
+			-s 'EXPORTED_RUNTIME_METHODS=[\"ccall\", \"cwrap\", \"getValue\", \"FS\", \"setValue\"]' \
+			-s VERBOSE=1 \
+			-s NO_EXIT_RUNTIME
 
 
 STATIC_LIBRARIES =
@@ -553,25 +560,27 @@ $(BIN_DIR)/$(TARGET_JS): $(INDEX_TEMPLATE) $(REQUIRED_PLUGINS) $(INPUT_FILES)
 			GLU_CFLAGS="" \
 			V=1 \
 			LDLIBS="$(STATIC_LIBRARIES)" \
-			OPTFLAGS="$(OPT_FLAGS) -v \
-			-s ERROR_ON_UNDEFINED_SYMBOLS=0	\
-			-s MAIN_MODULE=$(USE_DYNAMIC_PLUGINS) \
-			-s EXPORT_ALL=1 \
-			--use-preload-plugins -lidbfs.js \
-			--preload-file $(BIN_DIR)/data@data \
-			--shell-file $(INDEX_TEMPLATE) \
-			--js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js \
-			--js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js \
+			LDFLAGS="$(LDFLAGS)	\
 			-s INITIAL_HEAP=$(INITIAL_HEAP) \
 			-s STACK_SIZE=$(STACK_SIZE) \
 			-s ALLOW_MEMORY_GROWTH=1 \
-			-s DEMANGLE_SUPPORT=1 -s MODULARIZE=1 -s EXPORT_NAME=\"createModule\" \
+			-s MODULARIZE=1 -s EXPORT_NAME=\"createModule\" \
+			-s INVOKE_RUN=1 \
 			-s ENVIRONMENT='web,worker' -s EXPORT_ES6=0 \
-			-s NO_EXIT_RUNTIME=1 -s USE_ZLIB=1 \
-			-s USE_SDL=2 -s USE_LIBPNG=1 -s USE_FREETYPE=1 -s FULL_ES3=1 -s MAX_WEBGL_VERSION=2 \
+			-s NO_EXIT_RUNTIME=1 \
+			-s FULL_ES3=1 -s MAX_WEBGL_VERSION=2 \
 			-s ASYNCIFY=1 -s 'ASYNCIFY_IMPORTS=[\"waitForReliableMessage\",\"waitForAsyncAction\",\"findAutoInputConfigName\", \"sdl_init_audio_device\", \"initIDBFS\", \"writeROM\", \"copyInputAutoConfig\", \"startCore\", \"compileAndPatchModule\"]' \
+			--js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js \
+			--js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js \
+			--use-preload-plugins -lidbfs.js \
+			--preload-file $(BIN_DIR)/data@data"\
+			OPTFLAGS="$(OPT_FLAGS) -v \
+			-s ERROR_ON_UNDEFINED_SYMBOLS=0	\
+			-s MAIN_MODULE=$(USE_DYNAMIC_PLUGINS) \
+			-s USE_ZLIB=1 \
+			-s USE_SDL=2 -s USE_LIBPNG=1 -s USE_FREETYPE=1 \
 			-s USE_BOOST_HEADERS=1 \
-			-DEMSCRIPTEN=1 --pre-js $(PRE_JS) --post-js $(POST_JS)" \
+			-DEMSCRIPTEN=1" \
 			all && \
 			cd ../../../ && \
 			node remove-table-max-size.js bin/web/index.$(GIT_COMMIT).wasm
@@ -600,7 +609,11 @@ $(REQUIRED_CORE_PLUGIN_FILES): .FORCE
 		GLU_CFLAGS="" \
 		NETPLAY=1 \
 		V=1 \
-		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -s EXPORT_ALL=1 -DONSCREEN_FPS=1 -s USE_SDL=2 -s ASYNCIFY=1 -I ../../src/api --js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js" \
+		OPTFLAGS="$(OPT_FLAGS) -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -DONSCREEN_FPS=1 -s USE_SDL=2 -I ../../src/api" \
+		LDFLAGS="$(LDFLAGS) -s EXPORT_ALL=1 \
+		-s ERROR_ON_UNDEFINED_SYMBOLS=0 \
+		-s ASYNCIFY=1 \
+		--js-library ../../../mupen64plus-core-web-netplay/src/jslib/corelib.js" \
 		$(PLUGIN_BUILD_TARGET)
 
 
@@ -683,7 +696,10 @@ $(REQUIRED_INPUT_PLUGIN_FILES): .FORCE
 		GLU_CFLAGS="" \
 		V=1 \
 		LDLIBS="" \
-		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS) -s ASYNCIFY=1 --js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js" \
+		OPTFLAGS="$(OPT_FLAGS) -s ERROR_ON_UNDEFINED_SYMBOLS=0 -s SIDE_MODULE=$(USE_DYNAMIC_PLUGINS)" \
+		LDFLAGS="$(LDFLAGS) \
+		-s ASYNCIFY=1 \
+		--js-library ../../../mupen64plus-input-sdl/src/jslib/input-lib.js" \
 		$(PLUGIN_BUILD_TARGET)
 
 rsp: $(RSP_DIR)/$(RSP_LIB)
